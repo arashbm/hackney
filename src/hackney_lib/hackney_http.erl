@@ -325,16 +325,18 @@ parse_trailers(St, Acc) ->
         _ -> error
     end.
 
-parse_body(St=#hparser{body_state=waiting, te=TE, clen=Length,
+parse_body(St=#hparser{body_state=waiting, type=Type, te=TE, clen=Length,
                        method=Method, buffer=Buffer}) ->
 	case TE of
 		<<"chunked">> ->
 			parse_body(St#hparser{body_state=
 				{stream, fun te_chunked/2, {0, 0}, fun ce_identity/1}});
-		_ when Length =:= 0 orelse Method =:= <<"HEAD">> ->
-            {done, Buffer};
-        _ ->
-		    parse_body(St#hparser{body_state=
+		_ when (Length =:= 0 orelse Method =:= <<"HEAD">>) andalso Type =:= response ->
+			{done, Buffer};
+		_ when Length =:= TE =:= undefined andalso Type =:= request ->
+			{done, Buffer};
+        	_ ->
+        		parse_body(St#hparser{body_state=
 						{stream, fun te_identity/2, {0, Length},
 						 fun ce_identity/1}})
 	end;
