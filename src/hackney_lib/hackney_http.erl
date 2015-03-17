@@ -331,9 +331,10 @@ parse_body(St=#hparser{body_state=waiting, type=Type, te=TE, clen=Length,
 		<<"chunked">> ->
 			parse_body(St#hparser{body_state=
 				{stream, fun te_chunked/2, {0, 0}, fun ce_identity/1}});
-		_ when (Length =:= 0 orelse Method =:= <<"HEAD">>) andalso Type =:= response ->
+		_ when Type =:= response andalso (Length =:= 0 orelse Method =:= <<"HEAD">>) ->
 			{done, Buffer};
-		_ when Length =:= undefined andalso TE =:= undefined andalso Type =:= request ->
+		_ when Type =:= request andalso Length =:= undefined andalso TE =:= undefined andalso
+           Method =/= <<"CONNECT">>  ->
 			{done, Buffer};
         	_ ->
         		parse_body(St#hparser{body_state=
